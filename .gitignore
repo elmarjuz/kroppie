@@ -107,3 +107,5 @@ dist/
 
 # Application specific
 *.log
+
+.history/
