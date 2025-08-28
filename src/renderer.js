@@ -1,6 +1,12 @@
 // Application State
 class KroppieApp {
     constructor() {
+        // Crop dimension settings (will be configurable later)
+        this.cropSettings = {
+            width: 512,
+            height: 512
+        };
+
         this.state = {
             sourceDirectory: '',
             outputDirectory: '',
@@ -14,8 +20,9 @@ class KroppieApp {
             captionHistory: [], // Array of {caption, tags, timestamp, id} objects
             historyLength: 50, // Maximum number of history items
             isHistoryPinned: false,
-            cropArea: { x: 0, y: 0, width: 512, height: 512 },
+            cropArea: { x: 0, y: 0, width: 0, height: 0 }, // Will be set dynamically
             imageScale: 1,
+            imageZoomFactor: 1, // New: Image resize factor (0-1, where 1 = original scale)
             imageOffset: { x: 0, y: 0 },
             isDragging: false,
             showCropArea: false,
@@ -36,6 +43,7 @@ class KroppieApp {
             const savedSharedTags = localStorage.getItem('kroppie_sharedTags');
             const savedHistory = localStorage.getItem('kroppie_captionHistory');
             const savedHistoryLength = localStorage.getItem('kroppie_historyLength');
+            const savedCropSettings = localStorage.getItem('kroppie_cropSettings');
 
             if (savedSourceDir) {
                 this.state.sourceDirectory = savedSourceDir;
@@ -62,6 +70,14 @@ class KroppieApp {
                 this.elements.historyLengthInput.value = this.state.historyLength;
             }
 
+            if (savedCropSettings) {
+                const cropSettings = JSON.parse(savedCropSettings);
+                this.cropSettings.width = cropSettings.width || 512;
+                this.cropSettings.height = cropSettings.height || 512;
+                this.elements.cropWidthInput.value = this.cropSettings.width;
+                this.elements.cropHeightInput.value = this.cropSettings.height;
+            }
+
             // Auto-load images if source directory exists
             if (savedSourceDir) {
                 this.loadImages(savedSourceDir);
@@ -78,6 +94,7 @@ class KroppieApp {
             localStorage.setItem('kroppie_sharedTags', this.state.sharedTags || '');
             localStorage.setItem('kroppie_captionHistory', JSON.stringify(this.state.captionHistory));
             localStorage.setItem('kroppie_historyLength', this.state.historyLength.toString());
+            localStorage.setItem('kroppie_cropSettings', JSON.stringify(this.cropSettings));
             this.renderHistoryList();
         } catch (error) {
             console.error('Error saving persisted state:', error);
@@ -108,6 +125,7 @@ class KroppieApp {
             processedCount: document.getElementById('processedCount'),
             outputStatus: document.getElementById('outputStatus'),
             scaleStatus: document.getElementById('scaleStatus'),
+            cropSizeLabel: document.getElementById('cropSizeLabel'),
             settingsBtn: document.getElementById('settingsBtn'),
             settingsModal: document.getElementById('settingsModal'),
             closeSettingsBtn: document.getElementById('closeSettingsBtn'),
@@ -115,7 +133,11 @@ class KroppieApp {
             historyLengthInput: document.getElementById('historyLengthInput'),
             historyDropdown: document.getElementById('historyDropdown'),
             historySearch: document.getElementById('historySearch'),
-            historyList: document.getElementById('historyList')
+            historyList: document.getElementById('historyList'),
+            imageZoomSlider: document.getElementById('imageZoomSlider'),
+            zoomPercentage: document.getElementById('zoomPercentage'),
+            cropWidthInput: document.getElementById('cropWidthInput'),
+            cropHeightInput: document.getElementById('cropHeightInput')
         };
     }
 
@@ -153,6 +175,13 @@ class KroppieApp {
         this.elements.closeSettingsBtn.addEventListener('click', () => this.closeSettingsModal());
         this.elements.saveSettingsBtn.addEventListener('click', () => this.saveSettings());
         this.elements.historySearch.addEventListener('input', (e) => this.filterHistory(e.target.value));
+
+        // Image zoom slider event
+        this.elements.imageZoomSlider.addEventListener('input', (e) => this.handleZoomChange(e.target.value));
+
+        // Crop dimension inputs
+        this.elements.cropWidthInput.addEventListener('input', (e) => this.handleCropDimensionChange());
+        this.elements.cropHeightInput.addEventListener('input', (e) => this.handleCropDimensionChange());
 
         // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => this.handleDocumentClick(e));
@@ -193,7 +222,58 @@ class KroppieApp {
         this.closeSettingsModal();
     }
 
+    handleZoomChange(value) {
+        if (!this.state.currentImage) return;
 
+        // Convert slider value (0-100) to zoom factor
+        // 0 = minimum zoom (crop fits in image), 100 = original size
+        const percentage = parseInt(value) / 100;
+
+        const { width: imageWidth, height: imageHeight } = this.state.actualImageDimensions;
+
+        // Calculate minimum zoom to fit crop area in image (consider both dimensions)
+        const minZoomX = this.cropSettings.width / imageWidth;
+        const minZoomY = this.cropSettings.height / imageHeight;
+        const minZoom = Math.max(minZoomX, minZoomY); // Use the larger constraint
+
+        // Calculate zoom factor: interpolate between minZoom and 1.0
+        this.state.imageZoomFactor = minZoom + (1 - minZoom) * percentage;
+
+        // Update zoom percentage display
+        this.elements.zoomPercentage.textContent = `${value}%`;
+
+        // Recalculate layout with new zoom
+        this.recalculateImageLayout();
+    }
+
+    handleCropDimensionChange() {
+        const width = parseInt(this.elements.cropWidthInput.value);
+        const height = parseInt(this.elements.cropHeightInput.value);
+
+        // Validate inputs
+        if (!width || width < 64 || width > 2048 || !height || height < 64 || height > 2048) {
+            return;
+        }
+
+        // Update crop settings
+        this.cropSettings.width = width;
+        this.cropSettings.height = height;
+
+        // Save to localStorage
+        this.savePersistedState();
+
+        // If we have an image loaded, recalculate layout and reset zoom
+        if (this.state.currentImage) {
+            // Reset zoom to 100% when crop dimensions change
+            this.elements.imageZoomSlider.value = 100;
+            this.state.imageZoomFactor = 1;
+            this.elements.zoomPercentage.textContent = '100%';
+
+            this.recalculateImageLayout();
+        }
+
+        this.updateUI();
+    }
 
     handleDocumentClick(e) {
         // Close settings modal if clicking outside
@@ -396,6 +476,12 @@ class KroppieApp {
         this.elements.noImageState.style.display = 'none';
         this.elements.imageWorkspace.style.display = 'flex';
 
+        // Enable zoom slider and reset to 100%
+        this.elements.imageZoomSlider.disabled = false;
+        this.elements.imageZoomSlider.value = 100;
+        this.state.imageZoomFactor = 1;
+        this.elements.zoomPercentage.textContent = '100%';
+
         // Calculate image layout and crop area
         this.recalculateImageLayout();
     }
@@ -409,26 +495,32 @@ class KroppieApp {
 
         const { width: imageWidth, height: imageHeight } = this.state.actualImageDimensions;
 
-        const scaleX = maxWidth / imageWidth;
-        const scaleY = maxHeight / imageHeight;
+        // Apply image zoom factor first (resize the effective image size)
+        const zoomedWidth = imageWidth * this.state.imageZoomFactor;
+        const zoomedHeight = imageHeight * this.state.imageZoomFactor;
+
+        // Then calculate display scale to fit in container
+        const scaleX = maxWidth / zoomedWidth;
+        const scaleY = maxHeight / zoomedHeight;
         const scale = Math.min(scaleX, scaleY, 1);
 
         this.state.imageScale = scale;
 
-        const scaledWidth = imageWidth * scale;
-        const scaledHeight = imageHeight * scale;
+        const scaledWidth = zoomedWidth * scale;
+        const scaledHeight = zoomedHeight * scale;
 
         // Update image element size
         this.elements.currentImage.style.width = `${scaledWidth}px`;
         this.elements.currentImage.style.height = `${scaledHeight}px`;
 
-        // Center crop area
-        const cropSize = 512 * scale;
+        // Center crop area using actual crop settings
+        const cropWidth = this.cropSettings.width * scale;
+        const cropHeight = this.cropSettings.height * scale;
         this.state.cropArea = {
-            x: (scaledWidth - cropSize) / 2,
-            y: (scaledHeight - cropSize) / 2,
-            width: cropSize,
-            height: cropSize
+            x: (scaledWidth - cropWidth) / 2,
+            y: (scaledHeight - cropHeight) / 2,
+            width: cropWidth,
+            height: cropHeight
         };
 
         this.state.showCropArea = true;
@@ -445,12 +537,13 @@ class KroppieApp {
 
         this.state.isDragging = true;
 
-        const cropSize = 512 * this.state.imageScale;
+        const cropWidth = this.cropSettings.width * this.state.imageScale;
+        const cropHeight = this.cropSettings.height * this.state.imageScale;
         this.state.cropArea = {
-            x: Math.max(0, Math.min(x - cropSize / 2, this.elements.currentImage.offsetWidth - cropSize)),
-            y: Math.max(0, Math.min(y - cropSize / 2, this.elements.currentImage.offsetHeight - cropSize)),
-            width: cropSize,
-            height: cropSize
+            x: Math.max(0, Math.min(x - cropWidth / 2, this.elements.currentImage.offsetWidth - cropWidth)),
+            y: Math.max(0, Math.min(y - cropHeight / 2, this.elements.currentImage.offsetHeight - cropHeight)),
+            width: cropWidth,
+            height: cropHeight
         };
 
         this.updateCropOverlay();
@@ -463,12 +556,13 @@ class KroppieApp {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        const cropSize = 512 * this.state.imageScale;
+        const cropWidth = this.cropSettings.width * this.state.imageScale;
+        const cropHeight = this.cropSettings.height * this.state.imageScale;
         this.state.cropArea = {
-            x: Math.max(0, Math.min(x - cropSize / 2, this.elements.currentImage.offsetWidth - cropSize)),
-            y: Math.max(0, Math.min(y - cropSize / 2, this.elements.currentImage.offsetHeight - cropSize)),
-            width: cropSize,
-            height: cropSize
+            x: Math.max(0, Math.min(x - cropWidth / 2, this.elements.currentImage.offsetWidth - cropWidth)),
+            y: Math.max(0, Math.min(y - cropHeight / 2, this.elements.currentImage.offsetHeight - cropHeight)),
+            width: cropWidth,
+            height: cropHeight
         };
 
         this.updateCropOverlay();
@@ -527,7 +621,8 @@ class KroppieApp {
         ctx.fillStyle = '#fbbf24';
         ctx.font = '12px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('512×512', x + width / 2, y - 10);
+        const sizeLabel = `${this.cropSettings.width}×${this.cropSettings.height}`;
+        ctx.fillText(sizeLabel, x + width / 2, y - 10);
     }
 
     navigateImage(direction) {
@@ -568,19 +663,23 @@ class KroppieApp {
         try {
             // Create canvas for cropping
             const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 512;
+            canvas.width = this.cropSettings.width;
+            canvas.height = this.cropSettings.height;
             const ctx = canvas.getContext('2d');
 
             // Calculate source coordinates in original image
-            const scaleRatio = this.state.actualImageDimensions.width / this.elements.currentImage.offsetWidth;
+            // Account for image zoom factor in the calculation
+            const effectiveImageWidth = this.state.actualImageDimensions.width * this.state.imageZoomFactor;
+            const effectiveImageHeight = this.state.actualImageDimensions.height * this.state.imageZoomFactor;
+            const scaleRatio = effectiveImageWidth / this.elements.currentImage.offsetWidth;
             const sourceX = this.state.cropArea.x * scaleRatio;
             const sourceY = this.state.cropArea.y * scaleRatio;
-            const sourceSize = 512 * this.state.imageScale * scaleRatio;
+            const sourceCropWidth = this.cropSettings.width * this.state.imageScale * scaleRatio;
+            const sourceCropHeight = this.cropSettings.height * this.state.imageScale * scaleRatio;
 
             // Draw cropped image
             const img = this.elements.currentImage;
-            ctx.drawImage(img, sourceX, sourceY, sourceSize, sourceSize, 0, 0, 512, 512);
+            ctx.drawImage(img, sourceX, sourceY, sourceCropWidth, sourceCropHeight, 0, 0, this.cropSettings.width, this.cropSettings.height);
 
             // Convert to blob
             canvas.toBlob(async (blob) => {
@@ -734,6 +833,9 @@ class KroppieApp {
 
         // Update scale status
         this.elements.scaleStatus.textContent = `Scale: ${Math.round(this.state.imageScale * 100)}%`;
+
+        // Update crop size label
+        this.elements.cropSizeLabel.textContent = `Crop Size: ${this.cropSettings.width}×${this.cropSettings.height}px`;
     }
 }
 

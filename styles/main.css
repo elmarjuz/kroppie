@@ -253,6 +253,84 @@ textarea {
     gap: 12px;
 }
 
+.crop-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.crop-size-controls label {
+    font-size: 12px;
+    color: #cccccc;
+    white-space: nowrap;
+}
+
+.crop-size-controls input[type="number"] {
+    width: 70px;
+    padding: 4px 6px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 12px;
+    text-align: center;
+}
+
+.crop-size-controls input[type="number"]:focus {
+    outline: none;
+    border-color: #fbbf24;
+}
+
+.crop-size-controls span {
+    font-size: 12px;
+    color: #cccccc;
+}
+
+.zoom-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.zoom-control label {
+    font-size: 12px;
+    color: #cccccc;
+    white-space: nowrap;
+}
+
+.zoom-control input[type="range"] {
+    width: 100px;
+    height: 4px;
+    background: #333;
+    border-radius: 2px;
+    outline: none;
+}
+
+.zoom-control input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #fbbf24;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.zoom-control input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #fbbf24;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.zoom-control span {
+    font-size: 12px;
+    color: #fbbf24;
+    min-width: 35px;
+    text-align: center;
+}
+
 .crop-size-label {
     font-size: 14px;
     color: #cccccc;

@@ -7,7 +7,8 @@ An Electron-based desktop application for cropping images and managing captions 
 - **Directory Management**: Select source and output folders with native OS dialogs
 - **Image Gallery**: Sidebar showing all images with processing status (pending/processed)
 - **Precise Cropping**: 512×512 pixel crop area with accurate scaling and positioning
-- **Caption Management**: Individual captions + shared tags system
+- **Image Zoom Control**: Resize underlying image before cropping (zoom between crop size and image max dimension)
+- **Caption Management**: Individual captions + shared tags system with searchable history
 - **Auto-Navigation**: Automatically moves to next unprocessed image after cropping
 - **Keyboard Shortcuts**: Arrow keys for navigation, Enter for crop & save
 - **Visual Feedback**: Yellow crop overlay with corner indicators and size label
@@ -47,10 +48,11 @@ npm run build
 1. **Select Source Directory**: Choose your folder containing images. The output directory will automatically be set to `[source]/output` unless specified otherwise
 2. **Load Images**: The application will automatically load all supported image formats (jpg, png, bmp, gif, webp)
 3. **Navigate**: Use arrow keys or click on images in the sidebar to navigate
-4. **Add Captions**: Enter individual captions for each image, plus shared tags that apply to all images
-5. **Position Crop Area**: Click and drag on the image to position the 512×512 crop area
-6. **Crop & Save**: Use Ctrl+S to save the current crop (stays on image for multiple crops) or Ctrl+N to crop and move to next image
-7. **Multiple Crops**: You can create multiple crops from the same image - they'll be saved with unique names (image.jpg, image_crop2.jpg, etc.)
+4. **Adjust Image Zoom**: Use the zoom slider to resize the underlying image between crop size (0%) and original size (100%)
+5. **Add Captions**: Enter individual captions for each image, plus shared tags that apply to all images
+6. **Position Crop Area**: Click and drag on the image to position the 512×512 crop area
+7. **Crop & Save**: Use Ctrl+S to save the current crop (stays on image for multiple crops) or Ctrl+N to crop and move to next image
+8. **Multiple Crops**: You can create multiple crops from the same image - they'll be saved with unique names (image.jpg, image_crop2.jpg, etc.)
 
 ## Keyboard Shortcuts
 
