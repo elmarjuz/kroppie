@@ -3,7 +3,6 @@ const path = require('path');
 const fs = require('fs').promises;
 const { existsSync } = require('fs');
 
-// Hot reload in development
 const isDev = process.argv.includes('--dev') || process.env.ELECTRON_IS_DEV === 'true';
 if (isDev) {
   require('electron-reload')(__dirname, {
@@ -26,7 +25,7 @@ function createWindow() {
       enableRemoteModule: false,
       preload: path.join(__dirname, 'preload.js')
     },
-    icon: path.join(__dirname, 'assets', 'icon.png'), // Optional icon
+    icon: path.join(__dirname, 'assets', 'icon.png'),
     title: 'Kroppie - LoRA Dataset Cropper'
   });
 
@@ -41,7 +40,6 @@ function createWindow() {
   });
 }
 
-// IPC Handlers for file system operations
 ipcMain.handle('select-directory', async (event, type) => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory'],
@@ -105,7 +103,6 @@ ipcMain.handle('save-caption', async (event, imagePath, caption) => {
 
 ipcMain.handle('save-cropped-image', async (event, { sourcePath, outputPath, cropData, imageBuffer }) => {
   try {
-    // Write the cropped image buffer to the output path
     await fs.writeFile(outputPath, imageBuffer);
     return true;
   } catch (error) {
@@ -116,7 +113,6 @@ ipcMain.handle('save-cropped-image', async (event, { sourcePath, outputPath, cro
 
 ipcMain.handle('get-image-dimensions', async (event, imagePath) => {
   try {
-    // Use nativeImage for getting dimensions
     const image = nativeImage.createFromPath(imagePath);
     const size = image.getSize();
     return {
@@ -125,7 +121,6 @@ ipcMain.handle('get-image-dimensions', async (event, imagePath) => {
     };
   } catch (error) {
     console.error('Error getting image dimensions:', error);
-    // Fallback dimensions if we can't get the actual size
     return { width: 1920, height: 1080 };
   }
 });

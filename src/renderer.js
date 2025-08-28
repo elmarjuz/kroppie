@@ -1,7 +1,5 @@
-// Application State
 class KroppieApp {
     constructor() {
-        // Crop dimension settings (will be configurable later)
         this.cropSettings = {
             width: 512,
             height: 512
@@ -16,13 +14,13 @@ class KroppieApp {
             processedImages: new Set(),
             caption: '',
             sharedTags: '',
-            cropCounter: new Map(), // Track crop count per image
-            captionHistory: [], // Array of {caption, tags, timestamp, id} objects
-            historyLength: 50, // Maximum number of history items
+            cropCounter: new Map(),
+            captionHistory: [],
+            historyLength: 50,
             isHistoryPinned: false,
-            cropArea: { x: 0, y: 0, width: 0, height: 0 }, // Will be set dynamically
+            cropArea: { x: 0, y: 0, width: 0, height: 0 },
             imageScale: 1,
-            imageZoomFactor: 1, // New: Image resize factor (0-1, where 1 = original scale)
+            imageZoomFactor: 1, // Image resize factor (0-1, where 1 = original scale)
             imageOffset: { x: 0, y: 0 },
             isDragging: false,
             showCropArea: false,
@@ -37,7 +35,6 @@ class KroppieApp {
 
     loadPersistedState() {
         try {
-            // Load directories
             const savedSourceDir = localStorage.getItem('kroppie_sourceDirectory');
             const savedOutputDir = localStorage.getItem('kroppie_outputDirectory');
             const savedSharedTags = localStorage.getItem('kroppie_sharedTags');
@@ -78,7 +75,6 @@ class KroppieApp {
                 this.elements.cropHeightInput.value = this.cropSettings.height;
             }
 
-            // Auto-load images if source directory exists
             if (savedSourceDir) {
                 this.loadImages(savedSourceDir);
             }
@@ -142,19 +138,14 @@ class KroppieApp {
     }
 
     bindEvents() {
-        // Directory selection
         this.elements.selectSourceBtn.addEventListener('click', () => this.selectDirectory('source'));
         this.elements.selectOutputBtn.addEventListener('click', () => this.selectDirectory('output'));
 
-        // Navigation
         this.elements.prevBtn.addEventListener('click', () => this.navigateImage('prev'));
         this.elements.nextBtn.addEventListener('click', () => this.navigateImage('next'));
 
-        // Crop and save
         this.elements.cropSaveBtn.addEventListener('click', () => this.cropAndSave());
         this.elements.cropNextBtn.addEventListener('click', () => this.cropAndNext());
-
-        // Caption handling
         this.elements.captionInput.addEventListener('input', (e) => {
             this.state.caption = e.target.value;
         });
@@ -164,39 +155,31 @@ class KroppieApp {
             this.savePersistedState();
         });
 
-        // Mouse events for cropping
         this.elements.imageWrapper.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         this.elements.imageWrapper.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.elements.imageWrapper.addEventListener('mouseup', () => this.handleMouseUp());
         this.elements.imageWrapper.addEventListener('mouseleave', () => this.handleMouseUp());
 
-        // Settings and history events
         this.elements.settingsBtn.addEventListener('click', () => this.openSettingsModal());
         this.elements.closeSettingsBtn.addEventListener('click', () => this.closeSettingsModal());
         this.elements.saveSettingsBtn.addEventListener('click', () => this.saveSettings());
         this.elements.historySearch.addEventListener('input', (e) => this.filterHistory(e.target.value));
 
-        // Image zoom slider event
         this.elements.imageZoomSlider.addEventListener('input', (e) => this.handleZoomChange(e.target.value));
 
-        // Crop dimension inputs
         this.elements.cropWidthInput.addEventListener('input', (e) => this.handleCropDimensionChange());
         this.elements.cropHeightInput.addEventListener('input', (e) => this.handleCropDimensionChange());
 
         // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => this.handleDocumentClick(e));
 
-        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyDown(e));
 
-        // Window resize
         window.addEventListener('resize', () => this.recalculateImageLayout());
 
-        // Image load event
         this.elements.currentImage.addEventListener('load', () => this.onImageLoad());
     }
 
-    // Settings Modal Methods
     openSettingsModal() {
         this.elements.settingsModal.style.display = 'flex';
         this.elements.historyLengthInput.value = this.state.historyLength;
@@ -211,7 +194,6 @@ class KroppieApp {
         if (newLength >= 10 && newLength <= 500) {
             this.state.historyLength = newLength;
 
-            // Trim history if needed
             if (this.state.captionHistory.length > newLength) {
                 this.state.captionHistory = this.state.captionHistory.slice(0, newLength);
             }
@@ -239,10 +221,8 @@ class KroppieApp {
         // Calculate zoom factor: interpolate between minZoom and 1.0
         this.state.imageZoomFactor = minZoom + (1 - minZoom) * percentage;
 
-        // Update zoom percentage display
         this.elements.zoomPercentage.textContent = `${value}%`;
 
-        // Recalculate layout with new zoom
         this.recalculateImageLayout();
     }
 
@@ -250,21 +230,16 @@ class KroppieApp {
         const width = parseInt(this.elements.cropWidthInput.value);
         const height = parseInt(this.elements.cropHeightInput.value);
 
-        // Validate inputs
         if (!width || width < 64 || width > 2048 || !height || height < 64 || height > 2048) {
             return;
         }
 
-        // Update crop settings
         this.cropSettings.width = width;
         this.cropSettings.height = height;
 
-        // Save to localStorage
         this.savePersistedState();
 
-        // If we have an image loaded, recalculate layout and reset zoom
         if (this.state.currentImage) {
-            // Reset zoom to 100% when crop dimensions change
             this.elements.imageZoomSlider.value = 100;
             this.state.imageZoomFactor = 1;
             this.elements.zoomPercentage.textContent = '100%';
@@ -276,7 +251,6 @@ class KroppieApp {
     }
 
     handleDocumentClick(e) {
-        // Close settings modal if clicking outside
         if (e.target === this.elements.settingsModal) {
             this.closeSettingsModal();
         }
@@ -288,18 +262,15 @@ class KroppieApp {
 
         const timestamp = new Date().toISOString();
 
-        // Check if this exact combination already exists
         const existingIndex = this.state.captionHistory.findIndex(item =>
             `${item.caption.trim()} ${item.tags.trim()}`.trim() === combinedText
         );
 
         if (existingIndex >= 0) {
-            // Update timestamp and move to front
             const existing = this.state.captionHistory.splice(existingIndex, 1)[0];
             existing.timestamp = timestamp;
             this.state.captionHistory.unshift(existing);
         } else {
-            // Add new entry
             const newEntry = {
                 id: Date.now().toString(),
                 caption: caption.trim(),
@@ -309,7 +280,6 @@ class KroppieApp {
 
             this.state.captionHistory.unshift(newEntry);
 
-            // Trim to max length
             if (this.state.captionHistory.length > this.state.historyLength) {
                 this.state.captionHistory = this.state.captionHistory.slice(0, this.state.historyLength);
             }
@@ -364,7 +334,6 @@ class KroppieApp {
             const date = new Date(item.timestamp);
             const timeStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            // Condensed content preview (max 60 chars)
             const contentPreview = item.caption.length > 60 ?
                 item.caption.substring(0, 57) + '...' :
                 item.caption;
@@ -381,7 +350,6 @@ class KroppieApp {
             `;
         }).join('');
 
-        // Add event listeners for history items
         container.querySelectorAll('.history-item').forEach(item => {
             const id = item.dataset.id;
             item.addEventListener('click', (e) => {
@@ -391,7 +359,6 @@ class KroppieApp {
             });
         });
 
-        // Add event listeners for delete buttons
         container.querySelectorAll('.delete-history').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -428,7 +395,6 @@ class KroppieApp {
             this.state.currentImageIndex = 0;
             this.state.processedImages.clear();
 
-            // Set default output directory if not already set
             if (!this.state.outputDirectory) {
                 this.state.outputDirectory = await window.electronAPI.joinPath(directory, 'output');
                 this.elements.outputDirectory.value = this.state.outputDirectory;
@@ -450,18 +416,14 @@ class KroppieApp {
         try {
             this.state.currentImage = imageData;
 
-            // Load image dimensions
             this.state.actualImageDimensions = await window.electronAPI.getImageDimensions(imageData.path);
 
-            // Set image source
             this.elements.currentImage.src = `file://${imageData.path}`;
 
-            // Load existing caption
             const caption = await window.electronAPI.loadCaption(imageData.path);
             this.state.caption = caption;
             this.elements.captionInput.value = caption;
 
-            // Auto-focus caption input
             setTimeout(() => {
                 this.elements.captionInput.focus();
             }, 100);
@@ -472,17 +434,14 @@ class KroppieApp {
     }
 
     onImageLoad() {
-        // Show image workspace, hide no-image state
         this.elements.noImageState.style.display = 'none';
         this.elements.imageWorkspace.style.display = 'flex';
 
-        // Enable zoom slider and reset to 100%
         this.elements.imageZoomSlider.disabled = false;
         this.elements.imageZoomSlider.value = 100;
         this.state.imageZoomFactor = 1;
         this.elements.zoomPercentage.textContent = '100%';
 
-        // Calculate image layout and crop area
         this.recalculateImageLayout();
     }
 
@@ -490,7 +449,7 @@ class KroppieApp {
         if (!this.state.currentImage) return;
 
         const containerRect = this.elements.imageContainer.getBoundingClientRect();
-        const maxWidth = containerRect.width - 40; // padding
+        const maxWidth = containerRect.width - 40;
         const maxHeight = containerRect.height - 40;
 
         const { width: imageWidth, height: imageHeight } = this.state.actualImageDimensions;
@@ -509,11 +468,8 @@ class KroppieApp {
         const scaledWidth = zoomedWidth * scale;
         const scaledHeight = zoomedHeight * scale;
 
-        // Update image element size
         this.elements.currentImage.style.width = `${scaledWidth}px`;
         this.elements.currentImage.style.height = `${scaledHeight}px`;
-
-        // Center crop area using actual crop settings
         const cropWidth = this.cropSettings.width * scale;
         const cropHeight = this.cropSettings.height * scale;
         this.state.cropArea = {
@@ -578,7 +534,6 @@ class KroppieApp {
         const canvas = this.elements.cropOverlay;
         const ctx = canvas.getContext('2d');
 
-        // Set canvas size to match image
         const imgWidth = this.elements.currentImage.offsetWidth;
         const imgHeight = this.elements.currentImage.offsetHeight;
         canvas.width = imgWidth;
@@ -586,18 +541,14 @@ class KroppieApp {
         canvas.style.width = `${imgWidth}px`;
         canvas.style.height = `${imgHeight}px`;
 
-        // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Draw dark overlay
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Clear crop area
         ctx.globalCompositeOperation = 'destination-out';
         ctx.fillRect(this.state.cropArea.x, this.state.cropArea.y, this.state.cropArea.width, this.state.cropArea.height);
 
-        // Draw crop border
         ctx.globalCompositeOperation = 'source-over';
         ctx.strokeStyle = '#fbbf24';
         ctx.lineWidth = 2;
@@ -617,7 +568,6 @@ class KroppieApp {
         // Bottom-right
         ctx.fillRect(x + width - cornerSize / 2, y + height - cornerSize / 2, cornerSize, cornerSize);
 
-        // Draw size label 
         ctx.fillStyle = '#fbbf24';
         ctx.font = '12px sans-serif';
         ctx.textAlign = 'center';
@@ -639,17 +589,16 @@ class KroppieApp {
     }
 
     async cropAndSave() {
-        await this.performCrop(false); // Don't navigate after saving
+        await this.performCrop(false);
     }
 
     async cropAndNext() {
-        await this.performCrop(true); // Navigate after saving
+        await this.performCrop(true);
     }
 
     async performCrop(navigateNext = false) {
         if (!this.state.currentImage) return;
 
-        // Ensure we have an output directory
         let outputDir = this.state.outputDirectory;
         if (!outputDir) {
             outputDir = await window.electronAPI.joinPath(this.state.sourceDirectory, 'output');
@@ -657,11 +606,9 @@ class KroppieApp {
             this.elements.outputDirectory.value = outputDir;
         }
 
-        // Create output directory if it doesn't exist
         await window.electronAPI.ensureDirectory(outputDir);
 
         try {
-            // Create canvas for cropping
             const canvas = document.createElement('canvas');
             canvas.width = this.cropSettings.width;
             canvas.height = this.cropSettings.height;
@@ -695,29 +642,24 @@ class KroppieApp {
             const sourceCropWidth = zoomedCropWidth / this.state.imageZoomFactor;
             const sourceCropHeight = zoomedCropHeight / this.state.imageZoomFactor;
 
-            // Draw cropped image from original source
             const img = this.elements.currentImage;
             ctx.drawImage(img, sourceX, sourceY, sourceCropWidth, sourceCropHeight, 0, 0, this.cropSettings.width, this.cropSettings.height);
 
-            // Convert to blob
             canvas.toBlob(async (blob) => {
                 const arrayBuffer = await blob.arrayBuffer();
                 const buffer = new Uint8Array(arrayBuffer);
 
-                // Generate unique filename for multiple crops
                 const imageName = this.state.currentImage.name;
                 const cropCount = this.state.cropCounter.get(this.state.currentImage.path) || 0;
                 const newCropCount = cropCount + 1;
                 this.state.cropCounter.set(this.state.currentImage.path, newCropCount);
 
-                // Create unique filename: image_crop1.jpg, image_crop2.jpg, etc.
                 const nameWithoutExt = imageName.replace(/\.[^/.]+$/, '');
                 const extension = imageName.match(/\.[^/.]+$/)?.[0] || '.jpg';
                 const uniqueName = newCropCount === 1 ? imageName : `${nameWithoutExt}_crop${newCropCount}${extension}`;
 
                 const outputPath = await window.electronAPI.joinPath(outputDir, uniqueName);
 
-                // Save cropped image
                 await window.electronAPI.saveCroppedImage({
                     sourcePath: this.state.currentImage.path,
                     outputPath: outputPath,
@@ -725,14 +667,11 @@ class KroppieApp {
                     imageBuffer: buffer
                 });
 
-                // Save caption
                 const fullCaption = this.state.caption + (this.state.sharedTags ? `, ${this.state.sharedTags}` : '');
                 await window.electronAPI.saveCaption(outputPath, fullCaption);
 
-                // Add to caption history
                 this.addToHistory(this.state.caption, this.state.sharedTags);
 
-                // Mark as processed (for navigation purposes)
                 this.state.processedImages.add(this.state.currentImage.path);
 
                 if (navigateNext) {
@@ -828,36 +767,27 @@ class KroppieApp {
     }
 
     updateUI() {
-        // Update image count
         this.elements.imageCount.textContent = `Images (${this.state.images.length})`;
 
-        // Update image counter
         this.elements.imageCounter.textContent = `${this.state.currentImageIndex + 1} of ${this.state.images.length}`;
 
-        // Update navigation buttons
         this.elements.prevBtn.disabled = this.state.currentImageIndex === 0;
         this.elements.nextBtn.disabled = this.state.currentImageIndex === this.state.images.length - 1;
 
-        // Update crop buttons - only require current image
         const canCrop = !!this.state.currentImage;
         this.elements.cropSaveBtn.disabled = !canCrop;
         this.elements.cropNextBtn.disabled = !canCrop;
 
-        // Update processed count
         this.elements.processedCount.textContent = `Processed: ${this.state.processedImages.size}/${this.state.images.length}`;
 
-        // Update output status
         this.elements.outputStatus.textContent = `Output: ${this.state.outputDirectory || 'Not selected'}`;
 
-        // Update scale status
         this.elements.scaleStatus.textContent = `Scale: ${Math.round(this.state.imageScale * 100)}%`;
 
-        // Update crop size label
         this.elements.cropSizeLabel.textContent = `Crop Size: ${this.cropSettings.width}×${this.cropSettings.height}px`;
     }
 }
 
-// Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     new KroppieApp();
 });
