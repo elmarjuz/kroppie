@@ -667,17 +667,35 @@ class KroppieApp {
             canvas.height = this.cropSettings.height;
             const ctx = canvas.getContext('2d');
 
-            // Calculate source coordinates in original image
-            // Account for image zoom factor in the calculation
-            const effectiveImageWidth = this.state.actualImageDimensions.width * this.state.imageZoomFactor;
-            const effectiveImageHeight = this.state.actualImageDimensions.height * this.state.imageZoomFactor;
-            const scaleRatio = effectiveImageWidth / this.elements.currentImage.offsetWidth;
-            const sourceX = this.state.cropArea.x * scaleRatio;
-            const sourceY = this.state.cropArea.y * scaleRatio;
-            const sourceCropWidth = this.cropSettings.width * this.state.imageScale * scaleRatio;
-            const sourceCropHeight = this.cropSettings.height * this.state.imageScale * scaleRatio;
+            // Calculate source coordinates by reversing the exact display pipeline
+            
+            // Step 1: Map from display coordinates to zoomed image coordinates
+            // displayImage = zoomedImage * displayScale, so zoomedCoord = displayCoord / displayScale
+            const zoomedImageWidth = this.state.actualImageDimensions.width * this.state.imageZoomFactor;
+            const zoomedImageHeight = this.state.actualImageDimensions.height * this.state.imageZoomFactor;
+            
+            // This is the same calculation as in recalculateImageLayout
+            const containerRect = this.elements.imageContainer.getBoundingClientRect();
+            const maxWidth = containerRect.width - 40;
+            const maxHeight = containerRect.height - 40;
+            const scaleX = maxWidth / zoomedImageWidth;
+            const scaleY = maxHeight / zoomedImageHeight;
+            const displayScale = Math.min(scaleX, scaleY, 1);
+            
+            // Map crop coordinates to zoomed image space
+            const zoomedCropX = this.state.cropArea.x / displayScale;
+            const zoomedCropY = this.state.cropArea.y / displayScale;
+            const zoomedCropWidth = this.state.cropArea.width / displayScale;
+            const zoomedCropHeight = this.state.cropArea.height / displayScale;
+            
+            // Step 2: Map from zoomed coordinates to original coordinates
+            // zoomedImage = originalImage * zoomFactor, so originalCoord = zoomedCoord / zoomFactor
+            const sourceX = zoomedCropX / this.state.imageZoomFactor;
+            const sourceY = zoomedCropY / this.state.imageZoomFactor;
+            const sourceCropWidth = zoomedCropWidth / this.state.imageZoomFactor;
+            const sourceCropHeight = zoomedCropHeight / this.state.imageZoomFactor;
 
-            // Draw cropped image
+            // Draw cropped image from original source
             const img = this.elements.currentImage;
             ctx.drawImage(img, sourceX, sourceY, sourceCropWidth, sourceCropHeight, 0, 0, this.cropSettings.width, this.cropSettings.height);
 
