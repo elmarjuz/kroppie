@@ -159,6 +159,7 @@ class KroppieApp {
         this.elements.imageWrapper.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.elements.imageWrapper.addEventListener('mouseup', () => this.handleMouseUp());
         this.elements.imageWrapper.addEventListener('mouseleave', () => this.handleMouseUp());
+        this.elements.imageWrapper.addEventListener('wheel', (e) => this.handleMouseWheel(e));
 
         this.elements.settingsBtn.addEventListener('click', () => this.openSettingsModal());
         this.elements.closeSettingsBtn.addEventListener('click', () => this.closeSettingsModal());
@@ -526,6 +527,23 @@ class KroppieApp {
 
     handleMouseUp() {
         this.state.isDragging = false;
+    }
+
+    handleMouseWheel(e) {
+        if (!this.state.currentImage) return;
+        
+        e.preventDefault();
+        
+        const zoomStep = 5; // 5% increment/decrement per wheel step
+        const currentZoomValue = parseInt(this.elements.imageZoomSlider.value);
+        
+        // Determine zoom direction: negative deltaY means scroll up (zoom in)
+        const zoomDirection = e.deltaY < 0 ? 1 : -1;
+        const newZoomValue = Math.max(0, Math.min(100, currentZoomValue + (zoomStep * zoomDirection)));
+        
+        // Update slider and zoom
+        this.elements.imageZoomSlider.value = newZoomValue;
+        this.handleZoomChange(newZoomValue);
     }
 
     updateCropOverlay() {
