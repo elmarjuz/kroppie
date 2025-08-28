@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Croppie - LoRA Dataset Cropper</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <style>
+        /* Lucide Icons CSS - minimal inline version */
+        .lucide {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Directory Controls -->
+            <div class="directory-controls">
+                <div class="input-group">
+                    <label>Source Directory</label>
+                    <div class="input-with-button">
+                        <input type="text" id="sourceDirectory" placeholder="Select source folder..." readonly>
+                        <button id="selectSourceBtn" class="folder-btn">
+                            <svg class="lucide" viewBox="0 0 24 24">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Output Directory</label>
+                    <div class="input-with-button">
+                        <input type="text" id="outputDirectory" placeholder="Select output folder..." readonly>
+                        <button id="selectOutputBtn" class="folder-btn">
+                            <svg class="lucide" viewBox="0 0 24 24">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Gallery -->
+            <div class="image-gallery">
+                <h3 id="imageCount">Images (0)</h3>
+                <div id="imageList" class="image-list"></div>
+            </div>
+
+            <!-- Caption Controls -->
+            <div class="caption-controls">
+                <div class="input-group">
+                    <label>Caption</label>
+                    <textarea id="captionInput" rows="3" placeholder="Enter image caption..."></textarea>
+                </div>
+                
+                <div class="input-group">
+                    <label>Shared Tags</label>
+                    <input type="text" id="sharedTags" placeholder="Tags to append to all images...">
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="nav-controls">
+                    <button id="prevBtn" class="nav-btn" disabled>
+                        <svg class="lucide" viewBox="0 0 24 24">
+                            <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                        </svg>
+                        Previous (←)
+                    </button>
+                    
+                    <span id="imageCounter" class="counter">0 of 0</span>
+                    
+                    <button id="nextBtn" class="nav-btn" disabled>
+                        Next (→)
+                        <svg class="lucide" viewBox="0 0 24 24">
+                            <polygon points="9 20 19 12 9 4 9 20"></polygon>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="crop-controls">
+                    <div class="crop-size-label">Crop Size: 512×512px</div>
+                    
+                    <button id="cropSaveBtn" class="crop-btn" disabled>
+                        <svg class="lucide" viewBox="0 0 24 24">
+                            <path d="M6 2l4 4-4 4-1-1-2-2 2-2-1-1zm8 8l4 4-4 4-1-1-2-2 2-2-1-1z"></path>
+                            <path d="M16 2v12l4-4"></path>
+                        </svg>
+                        Crop & Save (Enter)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Image Cropping Area -->
+            <div class="image-container" id="imageContainer">
+                <div class="no-image-state" id="noImageState">
+                    <svg class="lucide large-icon" viewBox="0 0 24 24" width="48" height="48">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <p class="large-text">Select a source directory to begin</p>
+                    <p class="small-text">Load images and start cropping for your LoRA dataset</p>
+                </div>
+                
+                <div class="image-workspace" id="imageWorkspace" >
+                    <div class="image-wrapper" id="imageWrapper">
+                        <img id="currentImage" alt="Current image" style="display: none;">
+                        <canvas id="cropOverlay" class="crop-overlay"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="status-left">
+                    <span id="processedCount">Processed: 0/0</span>
+                    <span id="outputStatus">Output: Not selected</span>
+                </div>
+                <div class="status-right">
+                    <span id="scaleStatus">Scale: 100%</span>
+                    <span>Click and drag to position crop area</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
