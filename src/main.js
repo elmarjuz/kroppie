@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, nativeImage } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 const { existsSync } = require('fs');
@@ -137,6 +137,19 @@ ipcMain.handle('ensure-directory', async (event, dirPath) => {
     return true;
   } catch (error) {
     console.error('Error creating directory:', error);
+    return false;
+  }
+});
+
+ipcMain.handle('open-directory', async (event, dirPath) => {
+  try {
+    if (existsSync(dirPath)) {
+      await shell.openPath(dirPath);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error opening directory:', error);
     return false;
   }
 });

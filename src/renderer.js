@@ -112,6 +112,7 @@ class KroppieApp {
             imageCounter: document.getElementById('imageCounter'),
             cropSaveBtn: document.getElementById('cropSaveBtn'),
             cropNextBtn: document.getElementById('cropNextBtn'),
+            openOutputBtn: document.getElementById('openOutputBtn'),
             imageContainer: document.getElementById('imageContainer'),
             noImageState: document.getElementById('noImageState'),
             imageWorkspace: document.getElementById('imageWorkspace'),
@@ -146,6 +147,7 @@ class KroppieApp {
 
         this.elements.cropSaveBtn.addEventListener('click', () => this.cropAndSave());
         this.elements.cropNextBtn.addEventListener('click', () => this.cropAndNext());
+        this.elements.openOutputBtn.addEventListener('click', () => this.openOutputDirectory());
         this.elements.captionInput.addEventListener('input', (e) => {
             this.state.caption = e.target.value;
         });
@@ -537,6 +539,10 @@ class KroppieApp {
         const zoomStep = 5; // 5% increment/decrement per wheel step
         const currentZoomValue = parseInt(this.elements.imageZoomSlider.value);
         
+        // Store current crop position relative to the image before zoom
+        const cropCenterX = this.state.cropArea.x + (this.state.cropArea.width / 2);
+        const cropCenterY = this.state.cropArea.y + (this.state.cropArea.height / 2);
+        
         // Determine zoom direction: negative deltaY means scroll up (zoom in)
         const zoomDirection = e.deltaY < 0 ? 1 : -1;
         const newZoomValue = Math.max(0, Math.min(100, currentZoomValue + (zoomStep * zoomDirection)));
@@ -544,6 +550,26 @@ class KroppieApp {
         // Update slider and zoom
         this.elements.imageZoomSlider.value = newZoomValue;
         this.handleZoomChange(newZoomValue);
+        
+        // Try to maintain crop position after zoom
+        if (this.state.showCropArea) {
+            this.maintainCropPosition(cropCenterX, cropCenterY);
+        }
+    }
+
+    maintainCropPosition(prevCropCenterX, prevCropCenterY) {
+        // After zoom, try to keep the crop area centered on the same position
+        const newCropX = prevCropCenterX - (this.state.cropArea.width / 2);
+        const newCropY = prevCropCenterY - (this.state.cropArea.height / 2);
+        
+        // Constrain to image bounds
+        const imgWidth = this.elements.currentImage.offsetWidth;
+        const imgHeight = this.elements.currentImage.offsetHeight;
+        
+        this.state.cropArea.x = Math.max(0, Math.min(newCropX, imgWidth - this.state.cropArea.width));
+        this.state.cropArea.y = Math.max(0, Math.min(newCropY, imgHeight - this.state.cropArea.height));
+        
+        this.updateCropOverlay();
     }
 
     updateCropOverlay() {
@@ -795,6 +821,7 @@ class KroppieApp {
         const canCrop = !!this.state.currentImage;
         this.elements.cropSaveBtn.disabled = !canCrop;
         this.elements.cropNextBtn.disabled = !canCrop;
+        this.elements.openOutputBtn.disabled = !this.state.outputDirectory;
 
         this.elements.processedCount.textContent = `Processed: ${this.state.processedImages.size}/${this.state.images.length}`;
 
@@ -803,6 +830,16 @@ class KroppieApp {
         this.elements.scaleStatus.textContent = `Scale: ${Math.round(this.state.imageScale * 100)}%`;
 
         this.elements.cropSizeLabel.textContent = `Crop Size: ${this.cropSettings.width}×${this.cropSettings.height}px`;
+    }
+
+    async openOutputDirectory() {
+        if (!this.state.outputDirectory) return;
+        
+        try {
+            await window.electronAPI.openDirectory(this.state.outputDirectory);
+        } catch (error) {
+            console.error('Error opening output directory:', error);
+        }
     }
 }
 

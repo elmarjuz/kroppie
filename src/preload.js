@@ -12,5 +12,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveCroppedImage: (data) => ipcRenderer.invoke('save-cropped-image', data),
   
   joinPath: (...args) => ipcRenderer.invoke('join-path', ...args),
-  ensureDirectory: (dirPath) => ipcRenderer.invoke('ensure-directory', dirPath)
+  ensureDirectory: (dirPath) => ipcRenderer.invoke('ensure-directory', dirPath),
+  openDirectory: (dirPath) => ipcRenderer.invoke('open-directory', dirPath)
 });
