@@ -500,9 +500,9 @@ class KroppieApp {
 
             item.innerHTML = `
                 <div class="image-wrap">
-                    <div><img src="file://${image.path}"></div>
+                    <div><img src="file://${image.path}" style=""></div>
                     <div>
-                        <div class="image-name">${image.name}</div> 
+                        <div class="image-name">${image.name}</div>
                         <div class="image-status">${this.state.processedImages.has(image.path) ? 'Processed' : 'Pending'}</div>
                     </div>
                 </div>

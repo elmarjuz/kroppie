@@ -148,15 +148,7 @@ textarea {
     font-size: 12px;
     color: #cccccc;
 }
-.image-wrap {
-    display: flex;
-    flex-direction:row ;
-    gap: 5px;
-    overflow-x: hidden;
-}
-.image-wrap img {
-    max-width: 40px
-}
+.image-wrap
 
 /* Caption Controls */
 .caption-controls {

@@ -134,6 +134,18 @@ ipcMain.handle('join-path', async (event, ...args) => {
   return path.join(...args);
 });
 
+ipcMain.handle('ensure-directory', async (event, dirPath) => {
+  try {
+    if (!existsSync(dirPath)) {
+      await fs.mkdir(dirPath, { recursive: true });
+    }
+    return true;
+  } catch (error) {
+    console.error('Error creating directory:', error);
+    return false;
+  }
+});
+
 app.whenReady().then(() => {
   createWindow();
 

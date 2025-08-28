@@ -151,11 +151,7 @@ textarea {
 .image-wrap {
     display: flex;
     flex-direction:row ;
-    gap: 5px;
-    overflow-x: hidden;
-}
-.image-wrap img {
-    max-width: 40px
+    spacing: 5px;
 }
 
 /* Caption Controls */

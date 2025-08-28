@@ -154,9 +154,6 @@ textarea {
     gap: 5px;
     overflow-x: hidden;
 }
-.image-wrap img {
-    max-width: 40px
-}
 
 /* Caption Controls */
 .caption-controls {

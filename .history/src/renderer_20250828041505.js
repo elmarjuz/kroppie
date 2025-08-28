@@ -21,49 +21,7 @@ class KroppieApp {
 
         this.elements = this.initializeElements();
         this.bindEvents();
-        this.loadPersistedState();
         this.updateUI();
-    }
-
-    loadPersistedState() {
-        try {
-            // Load directories
-            const savedSourceDir = localStorage.getItem('kroppie_sourceDirectory');
-            const savedOutputDir = localStorage.getItem('kroppie_outputDirectory');
-            const savedSharedTags = localStorage.getItem('kroppie_sharedTags');
-
-            if (savedSourceDir) {
-                this.state.sourceDirectory = savedSourceDir;
-                this.elements.sourceDirectory.value = savedSourceDir;
-            }
-
-            if (savedOutputDir) {
-                this.state.outputDirectory = savedOutputDir;
-                this.elements.outputDirectory.value = savedOutputDir;
-            }
-
-            if (savedSharedTags) {
-                this.state.sharedTags = savedSharedTags;
-                this.elements.sharedTags.value = savedSharedTags;
-            }
-
-            // Auto-load images if source directory exists
-            if (savedSourceDir) {
-                this.loadImages(savedSourceDir);
-            }
-        } catch (error) {
-            console.error('Error loading persisted state:', error);
-        }
-    }
-
-    savePersistedState() {
-        try {
-            localStorage.setItem('kroppie_sourceDirectory', this.state.sourceDirectory || '');
-            localStorage.setItem('kroppie_outputDirectory', this.state.outputDirectory || '');
-            localStorage.setItem('kroppie_sharedTags', this.state.sharedTags || '');
-        } catch (error) {
-            console.error('Error saving persisted state:', error);
-        }
     }
 
     initializeElements() {
@@ -113,7 +71,6 @@ class KroppieApp {
 
         this.elements.sharedTags.addEventListener('input', (e) => {
             this.state.sharedTags = e.target.value;
-            this.savePersistedState();
         });
 
         // Mouse events for cropping
@@ -139,12 +96,10 @@ class KroppieApp {
                 if (type === 'source') {
                     this.state.sourceDirectory = selectedPath;
                     this.elements.sourceDirectory.value = selectedPath;
-                    this.savePersistedState();
                     await this.loadImages(selectedPath);
                 } else {
                     this.state.outputDirectory = selectedPath;
                     this.elements.outputDirectory.value = selectedPath;
-                    this.savePersistedState();
                 }
                 this.updateUI();
             }
@@ -164,7 +119,6 @@ class KroppieApp {
             if (!this.state.outputDirectory) {
                 this.state.outputDirectory = await window.electronAPI.joinPath(directory, 'output');
                 this.elements.outputDirectory.value = this.state.outputDirectory;
-                this.savePersistedState();
             }
 
             if (images.length > 0) {
@@ -500,11 +454,9 @@ class KroppieApp {
 
             item.innerHTML = `
                 <div class="image-wrap">
-                    <div><img src="file://${image.path}"></div>
-                    <div>
-                        <div class="image-name">${image.name}</div> 
-                        <div class="image-status">${this.state.processedImages.has(image.path) ? 'Processed' : 'Pending'}</div>
-                    </div>
+                    <img src="file://${image.path}" >
+                    <div class="image-name">${image.name}</div>
+                    <div class="image-status">${this.state.processedImages.has(image.path) ? 'Processed' : 'Pending'}</div>
                 </div>
             `;
 

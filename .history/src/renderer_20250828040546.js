@@ -21,49 +21,7 @@ class KroppieApp {
 
         this.elements = this.initializeElements();
         this.bindEvents();
-        this.loadPersistedState();
         this.updateUI();
-    }
-
-    loadPersistedState() {
-        try {
-            // Load directories
-            const savedSourceDir = localStorage.getItem('kroppie_sourceDirectory');
-            const savedOutputDir = localStorage.getItem('kroppie_outputDirectory');
-            const savedSharedTags = localStorage.getItem('kroppie_sharedTags');
-
-            if (savedSourceDir) {
-                this.state.sourceDirectory = savedSourceDir;
-                this.elements.sourceDirectory.value = savedSourceDir;
-            }
-
-            if (savedOutputDir) {
-                this.state.outputDirectory = savedOutputDir;
-                this.elements.outputDirectory.value = savedOutputDir;
-            }
-
-            if (savedSharedTags) {
-                this.state.sharedTags = savedSharedTags;
-                this.elements.sharedTags.value = savedSharedTags;
-            }
-
-            // Auto-load images if source directory exists
-            if (savedSourceDir) {
-                this.loadImages(savedSourceDir);
-            }
-        } catch (error) {
-            console.error('Error loading persisted state:', error);
-        }
-    }
-
-    savePersistedState() {
-        try {
-            localStorage.setItem('kroppie_sourceDirectory', this.state.sourceDirectory || '');
-            localStorage.setItem('kroppie_outputDirectory', this.state.outputDirectory || '');
-            localStorage.setItem('kroppie_sharedTags', this.state.sharedTags || '');
-        } catch (error) {
-            console.error('Error saving persisted state:', error);
-        }
     }
 
     initializeElements() {
@@ -113,7 +71,6 @@ class KroppieApp {
 
         this.elements.sharedTags.addEventListener('input', (e) => {
             this.state.sharedTags = e.target.value;
-            this.savePersistedState();
         });
 
         // Mouse events for cropping
@@ -139,12 +96,10 @@ class KroppieApp {
                 if (type === 'source') {
                     this.state.sourceDirectory = selectedPath;
                     this.elements.sourceDirectory.value = selectedPath;
-                    this.savePersistedState();
                     await this.loadImages(selectedPath);
                 } else {
                     this.state.outputDirectory = selectedPath;
                     this.elements.outputDirectory.value = selectedPath;
-                    this.savePersistedState();
                 }
                 this.updateUI();
             }
@@ -159,18 +114,17 @@ class KroppieApp {
             this.state.images = images;
             this.state.currentImageIndex = 0;
             this.state.processedImages.clear();
-
+            
             // Set default output directory if not already set
             if (!this.state.outputDirectory) {
                 this.state.outputDirectory = await window.electronAPI.joinPath(directory, 'output');
                 this.elements.outputDirectory.value = this.state.outputDirectory;
-                this.savePersistedState();
             }
-
+            
             if (images.length > 0) {
                 await this.loadCurrentImage(images[0]);
             }
-
+            
             this.renderImageList();
             this.updateUI();
         } catch (error) {
@@ -181,23 +135,23 @@ class KroppieApp {
     async loadCurrentImage(imageData) {
         try {
             this.state.currentImage = imageData;
-
+            
             // Load image dimensions
             this.state.actualImageDimensions = await window.electronAPI.getImageDimensions(imageData.path);
-
+            
             // Set image source
             this.elements.currentImage.src = `file://${imageData.path}`;
-
+            
             // Load existing caption
             const caption = await window.electronAPI.loadCaption(imageData.path);
             this.state.caption = caption;
             this.elements.captionInput.value = caption;
-
+            
             // Auto-focus caption input
             setTimeout(() => {
                 this.elements.captionInput.focus();
             }, 100);
-
+            
         } catch (error) {
             console.error('Error loading current image:', error);
         }
@@ -207,7 +161,7 @@ class KroppieApp {
         // Show image workspace, hide no-image state
         this.elements.noImageState.style.display = 'none';
         this.elements.imageWorkspace.style.display = 'flex';
-
+        
         // Calculate image layout and crop area
         this.recalculateImageLayout();
     }
@@ -218,22 +172,22 @@ class KroppieApp {
         const containerRect = this.elements.imageContainer.getBoundingClientRect();
         const maxWidth = containerRect.width - 40; // padding
         const maxHeight = containerRect.height - 40;
-
+        
         const { width: imageWidth, height: imageHeight } = this.state.actualImageDimensions;
-
+        
         const scaleX = maxWidth / imageWidth;
         const scaleY = maxHeight / imageHeight;
         const scale = Math.min(scaleX, scaleY, 1);
-
+        
         this.state.imageScale = scale;
-
+        
         const scaledWidth = imageWidth * scale;
         const scaledHeight = imageHeight * scale;
-
+        
         // Update image element size
         this.elements.currentImage.style.width = `${scaledWidth}px`;
         this.elements.currentImage.style.height = `${scaledHeight}px`;
-
+        
         // Center crop area
         const cropSize = 512 * scale;
         this.state.cropArea = {
@@ -242,7 +196,7 @@ class KroppieApp {
             width: cropSize,
             height: cropSize
         };
-
+        
         this.state.showCropArea = true;
         this.updateCropOverlay();
         this.updateUI();
@@ -250,13 +204,13 @@ class KroppieApp {
 
     handleMouseDown(e) {
         if (!this.state.currentImage) return;
-
+        
         const rect = this.elements.imageWrapper.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-
+        
         this.state.isDragging = true;
-
+        
         const cropSize = 512 * this.state.imageScale;
         this.state.cropArea = {
             x: Math.max(0, Math.min(x - cropSize / 2, this.elements.currentImage.offsetWidth - cropSize)),
@@ -264,17 +218,17 @@ class KroppieApp {
             width: cropSize,
             height: cropSize
         };
-
+        
         this.updateCropOverlay();
     }
 
     handleMouseMove(e) {
         if (!this.state.isDragging || !this.state.currentImage) return;
-
+        
         const rect = this.elements.imageWrapper.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-
+        
         const cropSize = 512 * this.state.imageScale;
         this.state.cropArea = {
             x: Math.max(0, Math.min(x - cropSize / 2, this.elements.currentImage.offsetWidth - cropSize)),
@@ -282,7 +236,7 @@ class KroppieApp {
             width: cropSize,
             height: cropSize
         };
-
+        
         this.updateCropOverlay();
     }
 
@@ -295,7 +249,7 @@ class KroppieApp {
 
         const canvas = this.elements.cropOverlay;
         const ctx = canvas.getContext('2d');
-
+        
         // Set canvas size to match image
         const imgWidth = this.elements.currentImage.offsetWidth;
         const imgHeight = this.elements.currentImage.offsetHeight;
@@ -303,29 +257,29 @@ class KroppieApp {
         canvas.height = imgHeight;
         canvas.style.width = `${imgWidth}px`;
         canvas.style.height = `${imgHeight}px`;
-
+        
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+        
         // Draw dark overlay
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+        
         // Clear crop area
         ctx.globalCompositeOperation = 'destination-out';
         ctx.fillRect(this.state.cropArea.x, this.state.cropArea.y, this.state.cropArea.width, this.state.cropArea.height);
-
+        
         // Draw crop border
         ctx.globalCompositeOperation = 'source-over';
         ctx.strokeStyle = '#fbbf24';
         ctx.lineWidth = 2;
         ctx.strokeRect(this.state.cropArea.x, this.state.cropArea.y, this.state.cropArea.width, this.state.cropArea.height);
-
+        
         // Draw corner indicators
         const cornerSize = 6;
         ctx.fillStyle = '#fbbf24';
         const { x, y, width, height } = this.state.cropArea;
-
+        
         // Top-left
         ctx.fillRect(x - cornerSize / 2, y - cornerSize / 2, cornerSize, cornerSize);
         // Top-right
@@ -334,7 +288,7 @@ class KroppieApp {
         ctx.fillRect(x - cornerSize / 2, y + height - cornerSize / 2, cornerSize, cornerSize);
         // Bottom-right
         ctx.fillRect(x + width - cornerSize / 2, y + height - cornerSize / 2, cornerSize, cornerSize);
-
+        
         // Draw size label
         ctx.fillStyle = '#fbbf24';
         ctx.font = '12px sans-serif';
@@ -343,10 +297,10 @@ class KroppieApp {
     }
 
     navigateImage(direction) {
-        const newIndex = direction === 'next'
+        const newIndex = direction === 'next' 
             ? Math.min(this.state.currentImageIndex + 1, this.state.images.length - 1)
             : Math.max(this.state.currentImageIndex - 1, 0);
-
+        
         if (newIndex !== this.state.currentImageIndex) {
             this.state.currentImageIndex = newIndex;
             this.loadCurrentImage(this.state.images[newIndex]);
@@ -365,7 +319,7 @@ class KroppieApp {
 
     async performCrop(navigateNext = false) {
         if (!this.state.currentImage) return;
-
+        
         // Ensure we have an output directory
         let outputDir = this.state.outputDirectory;
         if (!outputDir) {
@@ -373,45 +327,45 @@ class KroppieApp {
             this.state.outputDirectory = outputDir;
             this.elements.outputDirectory.value = outputDir;
         }
-
+        
         // Create output directory if it doesn't exist
         await window.electronAPI.ensureDirectory(outputDir);
-
+        
         try {
             // Create canvas for cropping
             const canvas = document.createElement('canvas');
             canvas.width = 512;
             canvas.height = 512;
             const ctx = canvas.getContext('2d');
-
+            
             // Calculate source coordinates in original image
             const scaleRatio = this.state.actualImageDimensions.width / this.elements.currentImage.offsetWidth;
             const sourceX = this.state.cropArea.x * scaleRatio;
             const sourceY = this.state.cropArea.y * scaleRatio;
             const sourceSize = 512 * this.state.imageScale * scaleRatio;
-
+            
             // Draw cropped image
             const img = this.elements.currentImage;
             ctx.drawImage(img, sourceX, sourceY, sourceSize, sourceSize, 0, 0, 512, 512);
-
+            
             // Convert to blob
             canvas.toBlob(async (blob) => {
                 const arrayBuffer = await blob.arrayBuffer();
                 const buffer = new Uint8Array(arrayBuffer);
-
+                
                 // Generate unique filename for multiple crops
                 const imageName = this.state.currentImage.name;
                 const cropCount = this.state.cropCounter.get(this.state.currentImage.path) || 0;
                 const newCropCount = cropCount + 1;
                 this.state.cropCounter.set(this.state.currentImage.path, newCropCount);
-
+                
                 // Create unique filename: image_crop1.jpg, image_crop2.jpg, etc.
                 const nameWithoutExt = imageName.replace(/\.[^/.]+$/, '');
                 const extension = imageName.match(/\.[^/.]+$/)?.[0] || '.jpg';
                 const uniqueName = newCropCount === 1 ? imageName : `${nameWithoutExt}_crop${newCropCount}${extension}`;
-
+                
                 const outputPath = await window.electronAPI.joinPath(outputDir, uniqueName);
-
+                
                 // Save cropped image
                 await window.electronAPI.saveCroppedImage({
                     sourcePath: this.state.currentImage.path,
@@ -419,20 +373,20 @@ class KroppieApp {
                     cropData: this.state.cropArea,
                     imageBuffer: buffer
                 });
-
+                
                 // Save caption
                 const fullCaption = this.state.caption + (this.state.sharedTags ? `, ${this.state.sharedTags}` : '');
                 await window.electronAPI.saveCaption(outputPath, fullCaption);
-
+                
                 // Mark as processed (for navigation purposes)
                 this.state.processedImages.add(this.state.currentImage.path);
-
+                
                 if (navigateNext) {
                     // Auto-navigate to next unprocessed image
-                    const nextUnprocessed = this.state.images.findIndex((img, index) =>
+                    const nextUnprocessed = this.state.images.findIndex((img, index) => 
                         index > this.state.currentImageIndex && !this.state.processedImages.has(img.path)
                     );
-
+                    
                     if (nextUnprocessed !== -1) {
                         this.state.currentImageIndex = nextUnprocessed;
                         await this.loadCurrentImage(this.state.images[nextUnprocessed]);
@@ -442,12 +396,12 @@ class KroppieApp {
                         this.state.showCropArea = false;
                     }
                 }
-
+                
                 this.renderImageList();
                 this.updateUI();
-
+                
             }, 'image/jpeg', 0.95);
-
+            
         } catch (error) {
             console.error('Error cropping and saving:', error);
         }
@@ -460,16 +414,16 @@ class KroppieApp {
             this.cropAndSave();
             return;
         }
-
+        
         if (e.ctrlKey && e.key === 'n') {
             e.preventDefault();
             this.cropAndNext();
             return;
         }
-
+        
         // Navigation shortcuts (only when not in input fields)
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
+        
         switch (e.key) {
             case 'ArrowLeft':
                 e.preventDefault();
@@ -485,36 +439,34 @@ class KroppieApp {
     renderImageList() {
         const container = this.elements.imageList;
         container.innerHTML = '';
-
+        
         this.state.images.forEach((image, index) => {
             const item = document.createElement('div');
             item.className = 'image-item';
-
+            
             if (index === this.state.currentImageIndex) {
                 item.classList.add('current');
             }
-
+            
             if (this.state.processedImages.has(image.path)) {
                 item.classList.add('processed');
             }
-
+            
             item.innerHTML = `
                 <div class="image-wrap">
-                    <div><img src="file://${image.path}"></div>
-                    <div>
-                        <div class="image-name">${image.name}</div> 
-                        <div class="image-status">${this.state.processedImages.has(image.path) ? 'Processed' : 'Pending'}</div>
-                    </div>
+                    <img src
+                    <div class="image-name">${image.name}</div>
+                    <div class="image-status">${this.state.processedImages.has(image.path) ? 'Processed' : 'Pending'}</div>
                 </div>
             `;
-
+            
             item.addEventListener('click', () => {
                 this.state.currentImageIndex = index;
                 this.loadCurrentImage(image);
                 this.state.showCropArea = false;
                 this.renderImageList();
             });
-
+            
             container.appendChild(item);
         });
     }
@@ -522,25 +474,25 @@ class KroppieApp {
     updateUI() {
         // Update image count
         this.elements.imageCount.textContent = `Images (${this.state.images.length})`;
-
+        
         // Update image counter
         this.elements.imageCounter.textContent = `${this.state.currentImageIndex + 1} of ${this.state.images.length}`;
-
+        
         // Update navigation buttons
         this.elements.prevBtn.disabled = this.state.currentImageIndex === 0;
         this.elements.nextBtn.disabled = this.state.currentImageIndex === this.state.images.length - 1;
-
+        
         // Update crop buttons - only require current image
         const canCrop = !!this.state.currentImage;
         this.elements.cropSaveBtn.disabled = !canCrop;
         this.elements.cropNextBtn.disabled = !canCrop;
-
+        
         // Update processed count
         this.elements.processedCount.textContent = `Processed: ${this.state.processedImages.size}/${this.state.images.length}`;
-
+        
         // Update output status
         this.elements.outputStatus.textContent = `Output: ${this.state.outputDirectory || 'Not selected'}`;
-
+        
         // Update scale status
         this.elements.scaleStatus.textContent = `Scale: ${Math.round(this.state.imageScale * 100)}%`;
     }
