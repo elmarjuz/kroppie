@@ -429,6 +429,7 @@ class KroppieApp {
 
             setTimeout(() => {
                 this.elements.captionInput.focus();
+                this.recalculateImageLayout();
             }, 100);
 
         } catch (error) {
@@ -533,24 +534,24 @@ class KroppieApp {
 
     handleMouseWheel(e) {
         if (!this.state.currentImage) return;
-        
+
         e.preventDefault();
-        
+
         const zoomStep = 5; // 5% increment/decrement per wheel step
         const currentZoomValue = parseInt(this.elements.imageZoomSlider.value);
-        
+
         // Store current crop position relative to the image before zoom
         const cropCenterX = this.state.cropArea.x + (this.state.cropArea.width / 2);
         const cropCenterY = this.state.cropArea.y + (this.state.cropArea.height / 2);
-        
+
         // Determine zoom direction: negative deltaY means scroll up (zoom in)
         const zoomDirection = e.deltaY < 0 ? 1 : -1;
         const newZoomValue = Math.max(0, Math.min(100, currentZoomValue + (zoomStep * zoomDirection)));
-        
+
         // Update slider and zoom
         this.elements.imageZoomSlider.value = newZoomValue;
         this.handleZoomChange(newZoomValue);
-        
+
         // Try to maintain crop position after zoom
         if (this.state.showCropArea) {
             this.maintainCropPosition(cropCenterX, cropCenterY);
@@ -561,14 +562,14 @@ class KroppieApp {
         // After zoom, try to keep the crop area centered on the same position
         const newCropX = prevCropCenterX - (this.state.cropArea.width / 2);
         const newCropY = prevCropCenterY - (this.state.cropArea.height / 2);
-        
+
         // Constrain to image bounds
         const imgWidth = this.elements.currentImage.offsetWidth;
         const imgHeight = this.elements.currentImage.offsetHeight;
-        
+
         this.state.cropArea.x = Math.max(0, Math.min(newCropX, imgWidth - this.state.cropArea.width));
         this.state.cropArea.y = Math.max(0, Math.min(newCropY, imgHeight - this.state.cropArea.height));
-        
+
         this.updateCropOverlay();
     }
 
@@ -659,12 +660,12 @@ class KroppieApp {
             const ctx = canvas.getContext('2d');
 
             // Calculate source coordinates by reversing the exact display pipeline
-            
+
             // Step 1: Map from display coordinates to zoomed image coordinates
             // displayImage = zoomedImage * displayScale, so zoomedCoord = displayCoord / displayScale
             const zoomedImageWidth = this.state.actualImageDimensions.width * this.state.imageZoomFactor;
             const zoomedImageHeight = this.state.actualImageDimensions.height * this.state.imageZoomFactor;
-            
+
             // This is the same calculation as in recalculateImageLayout
             const containerRect = this.elements.imageContainer.getBoundingClientRect();
             const maxWidth = containerRect.width - 40;
@@ -672,13 +673,13 @@ class KroppieApp {
             const scaleX = maxWidth / zoomedImageWidth;
             const scaleY = maxHeight / zoomedImageHeight;
             const displayScale = Math.min(scaleX, scaleY, 1);
-            
+
             // Map crop coordinates to zoomed image space
             const zoomedCropX = this.state.cropArea.x / displayScale;
             const zoomedCropY = this.state.cropArea.y / displayScale;
             const zoomedCropWidth = this.state.cropArea.width / displayScale;
             const zoomedCropHeight = this.state.cropArea.height / displayScale;
-            
+
             // Step 2: Map from zoomed coordinates to original coordinates
             // zoomedImage = originalImage * zoomFactor, so originalCoord = zoomedCoord / zoomFactor
             const sourceX = zoomedCropX / this.state.imageZoomFactor;
@@ -716,9 +717,9 @@ class KroppieApp {
 
                 this.addToHistory(this.state.caption, this.state.sharedTags);
 
-                this.state.processedImages.add(this.state.currentImage.path);
-
                 if (navigateNext) {
+                    this.state.processedImages.add(this.state.currentImage.path);
+
                     // Auto-navigate to next unprocessed image
                     const nextUnprocessed = this.state.images.findIndex((img, index) =>
                         index > this.state.currentImageIndex && !this.state.processedImages.has(img.path)
@@ -834,7 +835,7 @@ class KroppieApp {
 
     async openOutputDirectory() {
         if (!this.state.outputDirectory) return;
-        
+
         try {
             await window.electronAPI.openDirectory(this.state.outputDirectory);
         } catch (error) {
