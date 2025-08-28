@@ -11,6 +11,8 @@ class KroppieApp {
             caption: '',
             sharedTags: '',
             cropCounter: new Map(), // Track crop count per image
+            captionHistory: [], // Array of {caption, tags, timestamp, id} objects
+            historyLength: 50, // Maximum number of history items
             cropArea: { x: 0, y: 0, width: 512, height: 512 },
             imageScale: 1,
             imageOffset: { x: 0, y: 0 },
@@ -31,6 +33,8 @@ class KroppieApp {
             const savedSourceDir = localStorage.getItem('kroppie_sourceDirectory');
             const savedOutputDir = localStorage.getItem('kroppie_outputDirectory');
             const savedSharedTags = localStorage.getItem('kroppie_sharedTags');
+            const savedHistory = localStorage.getItem('kroppie_captionHistory');
+            const savedHistoryLength = localStorage.getItem('kroppie_historyLength');
 
             if (savedSourceDir) {
                 this.state.sourceDirectory = savedSourceDir;
@@ -47,6 +51,15 @@ class KroppieApp {
                 this.elements.sharedTags.value = savedSharedTags;
             }
 
+            if (savedHistory) {
+                this.state.captionHistory = JSON.parse(savedHistory);
+            }
+
+            if (savedHistoryLength) {
+                this.state.historyLength = parseInt(savedHistoryLength);
+                this.elements.historyLengthInput.value = this.state.historyLength;
+            }
+
             // Auto-load images if source directory exists
             if (savedSourceDir) {
                 this.loadImages(savedSourceDir);
@@ -61,6 +74,8 @@ class KroppieApp {
             localStorage.setItem('kroppie_sourceDirectory', this.state.sourceDirectory || '');
             localStorage.setItem('kroppie_outputDirectory', this.state.outputDirectory || '');
             localStorage.setItem('kroppie_sharedTags', this.state.sharedTags || '');
+            localStorage.setItem('kroppie_captionHistory', JSON.stringify(this.state.captionHistory));
+            localStorage.setItem('kroppie_historyLength', this.state.historyLength.toString());
         } catch (error) {
             console.error('Error saving persisted state:', error);
         }
@@ -89,7 +104,16 @@ class KroppieApp {
             cropOverlay: document.getElementById('cropOverlay'),
             processedCount: document.getElementById('processedCount'),
             outputStatus: document.getElementById('outputStatus'),
-            scaleStatus: document.getElementById('scaleStatus')
+            scaleStatus: document.getElementById('scaleStatus'),
+            settingsBtn: document.getElementById('settingsBtn'),
+            settingsModal: document.getElementById('settingsModal'),
+            closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+            saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+            historyLengthInput: document.getElementById('historyLengthInput'),
+            historyBtn: document.getElementById('historyBtn'),
+            historyDropdown: document.getElementById('historyDropdown'),
+            historySearch: document.getElementById('historySearch'),
+            historyList: document.getElementById('historyList')
         };
     }
 
@@ -122,6 +146,16 @@ class KroppieApp {
         this.elements.imageWrapper.addEventListener('mouseup', () => this.handleMouseUp());
         this.elements.imageWrapper.addEventListener('mouseleave', () => this.handleMouseUp());
 
+        // Settings and history events
+        this.elements.settingsBtn.addEventListener('click', () => this.openSettingsModal());
+        this.elements.closeSettingsBtn.addEventListener('click', () => this.closeSettingsModal());
+        this.elements.saveSettingsBtn.addEventListener('click', () => this.saveSettings());
+        this.elements.historyBtn.addEventListener('click', () => this.toggleHistoryDropdown());
+        this.elements.historySearch.addEventListener('input', (e) => this.filterHistory(e.target.value));
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => this.handleDocumentClick(e));
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyDown(e));
 
@@ -130,6 +164,169 @@ class KroppieApp {
 
         // Image load event
         this.elements.currentImage.addEventListener('load', () => this.onImageLoad());
+    }
+
+    // Settings Modal Methods
+    openSettingsModal() {
+        this.elements.settingsModal.style.display = 'flex';
+        this.elements.historyLengthInput.value = this.state.historyLength;
+    }
+
+    closeSettingsModal() {
+        this.elements.settingsModal.style.display = 'none';
+    }
+
+    saveSettings() {
+        const newLength = parseInt(this.elements.historyLengthInput.value);
+        if (newLength >= 10 && newLength <= 500) {
+            this.state.historyLength = newLength;
+            
+            // Trim history if needed
+            if (this.state.captionHistory.length > newLength) {
+                this.state.captionHistory = this.state.captionHistory.slice(0, newLength);
+            }
+            
+            this.savePersistedState();
+            this.renderHistoryList();
+        }
+        this.closeSettingsModal();
+    }
+
+    // History Management Methods
+    toggleHistoryDropdown() {
+        const isVisible = this.elements.historyDropdown.style.display === 'block';
+        this.elements.historyDropdown.style.display = isVisible ? 'none' : 'block';
+        if (!isVisible) {
+            this.renderHistoryList();
+            this.elements.historySearch.focus();
+        }
+    }
+
+    handleDocumentClick(e) {
+        // Close history dropdown if clicking outside
+        if (!this.elements.historyBtn.contains(e.target) && 
+            !this.elements.historyDropdown.contains(e.target)) {
+            this.elements.historyDropdown.style.display = 'none';
+        }
+        
+        // Close settings modal if clicking outside
+        if (e.target === this.elements.settingsModal) {
+            this.closeSettingsModal();
+        }
+    }
+
+    addToHistory(caption, tags) {
+        const combinedText = `${caption.trim()} ${tags.trim()}`.trim();
+        if (!combinedText) return;
+
+        const timestamp = new Date().toISOString();
+        
+        // Check if this exact combination already exists
+        const existingIndex = this.state.captionHistory.findIndex(item => 
+            `${item.caption.trim()} ${item.tags.trim()}`.trim() === combinedText
+        );
+
+        if (existingIndex >= 0) {
+            // Update timestamp and move to front
+            const existing = this.state.captionHistory.splice(existingIndex, 1)[0];
+            existing.timestamp = timestamp;
+            this.state.captionHistory.unshift(existing);
+        } else {
+            // Add new entry
+            const newEntry = {
+                id: Date.now().toString(),
+                caption: caption.trim(),
+                tags: tags.trim(),
+                timestamp: timestamp
+            };
+            
+            this.state.captionHistory.unshift(newEntry);
+            
+            // Trim to max length
+            if (this.state.captionHistory.length > this.state.historyLength) {
+                this.state.captionHistory = this.state.captionHistory.slice(0, this.state.historyLength);
+            }
+        }
+        
+        this.savePersistedState();
+    }
+
+    deleteHistoryItem(id) {
+        this.state.captionHistory = this.state.captionHistory.filter(item => item.id !== id);
+        this.savePersistedState();
+        this.renderHistoryList();
+    }
+
+    selectHistoryItem(id) {
+        const item = this.state.captionHistory.find(h => h.id === id);
+        if (item) {
+            this.state.caption = item.caption;
+            this.state.sharedTags = item.tags;
+            this.elements.captionInput.value = item.caption;
+            this.elements.sharedTags.value = item.tags;
+            this.elements.historyDropdown.style.display = 'none';
+            this.savePersistedState();
+        }
+    }
+
+    filterHistory(searchTerm) {
+        this.renderHistoryList(searchTerm.toLowerCase());
+    }
+
+    renderHistoryList(filterText = '') {
+        const container = this.elements.historyList;
+        
+        let filteredHistory = this.state.captionHistory;
+        if (filterText) {
+            filteredHistory = this.state.captionHistory.filter(item => {
+                const searchText = `${item.caption} ${item.tags}`.toLowerCase();
+                return searchText.includes(filterText);
+            });
+        }
+
+        if (filteredHistory.length === 0) {
+            container.innerHTML = '<div class="history-empty">No caption history found</div>';
+            return;
+        }
+
+        container.innerHTML = filteredHistory.map(item => {
+            const date = new Date(item.timestamp);
+            const timeStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            // Condensed content preview (max 60 chars)
+            const contentPreview = item.caption.length > 60 ? 
+                item.caption.substring(0, 57) + '...' : 
+                item.caption;
+            
+            return `
+                <div class="history-item" data-id="${item.id}">
+                    <div class="history-time">${timeStr}</div>
+                    ${item.tags ? `<div class="history-tags">${item.tags}</div>` : ''}
+                    <div class="history-content">${contentPreview}</div>
+                    <div class="history-actions">
+                        <button class="delete-history" data-id="${item.id}">×</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Add event listeners for history items
+        container.querySelectorAll('.history-item').forEach(item => {
+            const id = item.dataset.id;
+            item.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('delete-history')) {
+                    this.selectHistoryItem(id);
+                }
+            });
+        });
+
+        // Add event listeners for delete buttons
+        container.querySelectorAll('.delete-history').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deleteHistoryItem(btn.dataset.id);
+            });
+        });
     }
 
     async selectDirectory(type) {
@@ -423,6 +620,9 @@ class KroppieApp {
                 // Save caption
                 const fullCaption = this.state.caption + (this.state.sharedTags ? `, ${this.state.sharedTags}` : '');
                 await window.electronAPI.saveCaption(outputPath, fullCaption);
+                
+                // Add to caption history
+                this.addToHistory(this.state.caption, this.state.sharedTags);
 
                 // Mark as processed (for navigation purposes)
                 this.state.processedImages.add(this.state.currentImage.path);

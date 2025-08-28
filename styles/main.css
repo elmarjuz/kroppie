@@ -1,3 +1,35 @@
+/* 
+ * KROPPIE STYLESHEET DOCUMENTATION
+ * 
+ * Section Line References:
+ * ├── Reset and Base Styles: Lines 1-15
+ * ├── App Layout: Lines 17-22
+ * ├── Sidebar Styles: Lines 24-129
+ * │   ├── Directory Controls: Lines 26-78
+ * │   ├── Image Gallery: Lines 80-114
+ * │   └── Caption Controls: Lines 116-129
+ * ├── Main Content Area: Lines 131-172
+ * │   ├── Toolbar: Lines 135-150
+ * │   ├── Navigation Controls: Lines 152-159
+ * │   └── Crop Controls: Lines 161-172
+ * ├── Image Container: Lines 174-254
+ * │   ├── No Image State: Lines 180-200
+ * │   ├── Image Workspace: Lines 202-230
+ * │   └── Crop Overlay: Lines 232-254
+ * ├── Status Bar: Lines 256-270
+ * ├── Crop Area Visual Elements: Lines 272-300
+ * ├── Settings and History UI: Lines 392-531
+ * │   ├── Settings Header: Lines 392-420
+ * │   ├── History Dropdown: Lines 422-530
+ * │   └── History Items: Lines 470-530
+ * ├── Modal Styles: Lines 533-645
+ * │   ├── Modal Base: Lines 533-555
+ * │   ├── Modal Header: Lines 557-585
+ * │   ├── Modal Body: Lines 587-623
+ * │   └── Modal Footer: Lines 625-645
+ * └── Scrollbar Styling: Lines 647-663
+ */
+
 /* Reset and Base Styles */
 * {
     margin: 0;
@@ -386,6 +418,262 @@ textarea {
     font-size: 12px;
     font-weight: 500;
     white-space: nowrap;
+}
+
+/* Settings and History Styles */
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.settings-header h3 {
+    font-size: 14px;
+    font-weight: 500;
+    color: #e0e0e0;
+    margin: 0;
+}
+
+.settings-btn, .history-btn {
+    padding: 4px;
+    background: #404040;
+    border: none;
+    border-radius: 3px;
+    color: #ffffff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-btn:hover, .history-btn:hover {
+    background: #555555;
+}
+
+.label-with-history {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.history-dropdown {
+    position: relative;
+}
+
+.history-dropdown-content {
+    position: absolute;
+    right: 0;
+    top: 30px;
+    width: 280px;
+    background: #2a2a2a;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.history-search {
+    padding: 8px;
+    border-bottom: 1px solid #555555;
+}
+
+.history-search input {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 12px;
+}
+
+.history-list {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.history-empty {
+    padding: 16px;
+    text-align: center;
+    color: #888888;
+    font-size: 12px;
+}
+
+.history-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #404040;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.history-item:hover {
+    background: #404040;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-time {
+    color: #888888;
+    font-size: 10px;
+    margin-bottom: 2px;
+}
+
+.history-tags {
+    color: #fbbf24;
+    font-size: 11px;
+    margin-bottom: 2px;
+}
+
+.history-content {
+    color: #cccccc;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.history-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+.delete-history {
+    background: #dc2626;
+    border: none;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-size: 10px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.history-item:hover .delete-history {
+    opacity: 1;
+}
+
+.delete-history:hover {
+    background: #b91c1c;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: #2a2a2a;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 80%;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #404040;
+}
+
+.modal-header h2 {
+    font-size: 18px;
+    color: #ffffff;
+    margin: 0;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #888888;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    color: #ffffff;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.setting-group {
+    margin-bottom: 20px;
+}
+
+.setting-group:last-child {
+    margin-bottom: 0;
+}
+
+.setting-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #e0e0e0;
+}
+
+.setting-group input[type="number"] {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: #404040;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.setting-group small {
+    display: block;
+    margin-top: 4px;
+    color: #888888;
+    font-size: 12px;
+}
+
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #404040;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.save-btn {
+    padding: 8px 16px;
+    background-color: #22c55e;
+    border: none;
+    border-radius: 4px;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.save-btn:hover {
+    background-color: #16a34a;
 }
 
 /* Scrollbar Styling */

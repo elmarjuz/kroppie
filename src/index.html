@@ -57,14 +57,63 @@
 
             <!-- Caption Controls -->
             <div class="caption-controls">
+                <div class="settings-header">
+                    <h3>Captions</h3>
+                    <button id="settingsBtn" class="settings-btn" title="Settings">
+                        <svg class="lucide" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="m12 1 1.27 2.91 3.17.46-.9 3.11 2.28 2.28-3.11.9-.46 3.17L12 23l-2.91-1.27-3.17-.46.9-3.11L4.54 15.9l3.11-.9.46-3.17z"></path>
+                        </svg>
+                    </button>
+                </div>
+                
                 <div class="input-group">
-                    <label>Caption</label>
+                    <div class="label-with-history">
+                        <label>Caption</label>
+                        <div class="history-dropdown">
+                            <button id="historyBtn" class="history-btn" title="Caption History">
+                                <svg class="lucide" viewBox="0 0 24 24">
+                                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                                    <path d="M3 3v5h5"></path>
+                                    <path d="M12 7v5l4 2"></path>
+                                </svg>
+                            </button>
+                            <div id="historyDropdown" class="history-dropdown-content" style="display: none;">
+                                <div class="history-search">
+                                    <input type="text" id="historySearch" placeholder="Search history...">
+                                </div>
+                                <div id="historyList" class="history-list">
+                                    <div class="history-empty">No caption history yet</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <textarea id="captionInput" rows="3" placeholder="Enter image caption..."></textarea>
                 </div>
                 
                 <div class="input-group">
                     <label>Shared Tags</label>
                     <input type="text" id="sharedTags" placeholder="Tags to append to all images...">
+                </div>
+            </div>
+
+            <!-- Settings Modal -->
+            <div id="settingsModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Settings</h2>
+                        <button id="closeSettingsBtn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="setting-group">
+                            <label for="historyLengthInput">Caption History Length</label>
+                            <input type="number" id="historyLengthInput" min="10" max="500" value="50">
+                            <small>Number of caption entries to keep in history (10-500)</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="saveSettingsBtn" class="save-btn">Save Settings</button>
+                    </div>
                 </div>
             </div>
         </div>
